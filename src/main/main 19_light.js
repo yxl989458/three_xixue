@@ -3,8 +3,16 @@ import { DoubleSide } from "three";
 
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import * as dat from "dat.gui";
-// 目标 聚光灯
+// 目标
+/*
+ * 灯光阴影
+ * 1.材质要满足能够对光照有反应
+ * 2.设置渲染器开启阴影的计算 render.shadowMap.enabled=true
+ * 3.设置光照投影阴影 directionalLight.castShadow=true
+ * 4.设置物理投影阴影 sphere.castShadow=true
+ * 5.设置物体接受阴影 plan.receiveShadow=true
 
+*/
 //创建场景
 const scene = new THREE.Scene();
 
@@ -21,10 +29,20 @@ camera.position.set(0, 0, 100);
 
 scene.add(camera);
 
-const lights = new THREE.AmbientLight(0x404040, 0.5); // soft white light
-scene.add(lights);
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(10, 10, 0); //default; light shining from top
+light.castShadow = true; // default false
+scene.add(light);
 
-
+//Set up shadow properties for the light
+light.shadow.mapSize.width = 2048; // default
+light.shadow.mapSize.height = 2048; // default
+light.shadow.camera.near = 1; // default
+light.shadow.camera.far = 500; // default
+light.shadow.camera.right = 50; // default
+light.shadow.camera.left = -50; // defaultlight.shadow.camera.near = 10; // default
+light.shadow.camera.top = 50; // defaultlight.shadow.camera.near = 10; // default
+light.shadow.camera.bottom = -50; // default
 
 //Create a sphere that cast shadows (but does not receive them)
 const sphereGeometry = new THREE.SphereGeometry(5, 32, 32);
@@ -38,34 +56,19 @@ sphere.receiveShadow = false; //default
 scene.add(sphere);
 
 //Create a plane that receives shadows (but does not cast them)
-const planeGeometry = new THREE.PlaneGeometry(50, 50);
+const planeGeometry = new THREE.PlaneGeometry(30, 30);
 
 const planeMaterial = new THREE.MeshStandardMaterial({
   color: 0xffffff,
   side: DoubleSide,
 });
-
-
-
-
 const plane = new THREE.Mesh(planeGeometry, planeMaterial);
 plane.position.set(0, -5, 0);
 plane.rotation.x = Math.PI / 2;
 plane.receiveShadow = true;
 scene.add(plane);
 
-//聚光灯光源
-const spotLight = new THREE.SpotLight(0xffffff, 0.5, 1000);
-spotLight.position.set(5, 10, 0); //default; light shining from top
-spotLight.castShadow = true; // default false
-spotLight.shadow.mapSize.set(4096,4096)
-spotLight.target=sphere
-scene.add(spotLight);
-spotLight.angle=Math.PI/4
-
-
-
-const helper = new THREE.CameraHelper(spotLight.shadow.camera);
+const helper = new THREE.CameraHelper(light.shadow.camera);
 scene.add(helper);
 
 const axesHelper = new THREE.AxesHelper(100);
@@ -96,31 +99,10 @@ animate();
 
 const gui = new dat.GUI();
 gui
-  .add(sphere.position, "x")
-  .min(-5)
-  .max(10)
-  .step(1)
-  ;
-
-  gui.add(spotLight,'angle').
-  min(-5)
-  .max(10)
-  .step(0.1)
-
-
-  gui.add(spotLight,'distance').
-  min(5)
+  .add(light.shadow.camera, "near")
+  .min(0.1)
   .max(100)
   .step(0.1)
-
-
-  gui.add(spotLight,'penumbra').
-  min(0)
-  .max(1)
-  .step(0.1)
-  gui.add(spotLight,'decay').
-    min(0)
-  .max(100)
-  .step(0.1)
-
-
+  .onChange(() => {
+    light.shadow.camera.updateProjectionMatrix();
+  });
